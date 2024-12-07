@@ -26,4 +26,14 @@ abstract class PasskeyApplePlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+
+  Future<dynamic?> signIn() {
+    throw UnimplementedError('signIn() has not been implemented.');
+  }
+
+  Future<dynamic?> isSignedIn(
+    String userIdentifier,
+  ) {
+    throw UnimplementedError('isSignedIn() has not been implemented.');
+  }
 }

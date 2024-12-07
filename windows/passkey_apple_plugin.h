@@ -5,6 +5,8 @@
 #include <flutter/plugin_registrar_windows.h>
 
 #include <memory>
+#include <string>
+#include <windows.h>
 
 namespace passkey_apple {
 
@@ -20,10 +22,14 @@ class PasskeyApplePlugin : public flutter::Plugin {
   PasskeyApplePlugin(const PasskeyApplePlugin&) = delete;
   PasskeyApplePlugin& operator=(const PasskeyApplePlugin&) = delete;
 
-  // Called when a method is called on this plugin's channel from Dart.
-  void HandleMethodCall(
-      const flutter::MethodCall<flutter::EncodableValue> &method_call,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+ private:
+  void HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue> &method_call,
+                        std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  void SignInWithApple(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+  static HWND mainWindowHandle;
 };
 
 }  // namespace passkey_apple

@@ -14,4 +14,18 @@ class MethodChannelPasskeyApple extends PasskeyApplePlatform {
     final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
     return version;
   }
+
+  @override
+  Future<dynamic?> signIn() async {
+    final signIn = await methodChannel.invokeMethod<String>('signIn');
+    return signIn;
+  }
+
+  @override
+  Future<dynamic?> isSignedIn(
+    String userIdentifier,
+  ) async {
+    final isSignedIn = await methodChannel.invokeMethod<String>('isSignedIn', <String, String>{'userIdentifier': userIdentifier});
+    return isSignedIn;
+  }
 }
