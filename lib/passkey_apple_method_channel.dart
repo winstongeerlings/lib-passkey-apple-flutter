@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:passkey_apple/passkey_apple_config.dart';
 
 import 'passkey_apple_platform_interface.dart';
 
@@ -16,8 +17,17 @@ class MethodChannelPasskeyApple extends PasskeyApplePlatform {
   }
 
   @override
-  Future<dynamic?> signIn() async {
-    final signIn = await methodChannel.invokeMethod<String>('signIn');
+  Future<dynamic?> signIn(PasskeyAppleConfig? config) async {
+    if (config == null) {
+      final signIn = await methodChannel.invokeMethod<String>('signIn');
+      return signIn;
+    }
+
+    final signIn = await methodChannel.invokeMethod<String>('signIn', <String, String>{
+      'clientId': config.clientId,
+      'redirectUri': config.redirectUri,
+      'scheme': config.scheme,
+    });
     return signIn;
   }
 

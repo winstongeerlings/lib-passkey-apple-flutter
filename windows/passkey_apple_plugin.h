@@ -26,7 +26,7 @@ class PasskeyApplePlugin : public flutter::Plugin {
   void HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue> &method_call,
                         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
-  void SignInWithApple(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void SignInWithApple(const flutter::MethodCall<flutter::EncodableValue>& method_call, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
   static HWND mainWindowHandle;

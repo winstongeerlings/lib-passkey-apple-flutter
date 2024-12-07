@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "passkey_apple_plugin.h"
 
 #include <flutter/method_channel.h>
@@ -15,6 +16,8 @@ namespace passkey_apple {
 HANDLE g_hMutex = NULL;
 HANDLE g_hEvent = NULL;
 std::wstring g_token;
+std::wstring g_scheme;
+std::wstring g_path;
 
 bool IsAlreadyRunning() {
   g_hMutex = CreateMutex(NULL, TRUE, L"PasskeyApplePluginMutex");
@@ -85,7 +88,7 @@ PasskeyApplePlugin::PasskeyApplePlugin() {
 
   wchar_t path[MAX_PATH];
   GetModuleFileName(NULL, path, MAX_PATH);
-  RegisterCustomURLScheme(L"<scheme>", path);
+  g_path = path;
 
   // Register the window class with WindowProc
   WNDCLASS wc = {0};
@@ -121,26 +124,51 @@ void PasskeyApplePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if (method_call.method_name().compare("signIn") == 0) {
-    SignInWithApple(std::move(result));
+    SignInWithApple(method_call, std::move(result));
   } else {
     result->NotImplemented();
   }
 }
 
 void PasskeyApplePlugin::SignInWithApple(
+    const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  // Extract the configuration parameters from the method call arguments
+  const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
+  if (!arguments) {
+    result->Error("InvalidArguments", "Expected a map of configuration parameters");
+    return;
+  }
+
+  auto clientIdIt = arguments->find(flutter::EncodableValue("clientId"));
+  auto redirectUriIt = arguments->find(flutter::EncodableValue("redirectUri"));
+  auto schemeIt = arguments->find(flutter::EncodableValue("scheme"));
+
+  if (clientIdIt == arguments->end() || redirectUriIt == arguments->end() || schemeIt == arguments->end()) {
+    result->Error("InvalidArguments", "Missing configuration parameters");
+    return;
+  }
+
+  std::wstring clientId = std::wstring(std::get<std::string>(clientIdIt->second).begin(), std::get<std::string>(clientIdIt->second).end());
+  std::wstring redirectUri = std::wstring(std::get<std::string>(redirectUriIt->second).begin(), std::get<std::string>(redirectUriIt->second).end());
+  std::wstring scheme = std::wstring(std::get<std::string>(schemeIt->second).begin(), std::get<std::string>(schemeIt->second).end());
+
+
+  std::transform(scheme.begin(), scheme.end(), scheme.begin(), towlower);
+  g_scheme = scheme;
+  RegisterCustomURLScheme(g_scheme, g_path);
+
   // URL of the Apple login page
-  // TODO: inputs need to come from the Dart side
-    const wchar_t* url = L"https://appleid.apple.com/auth/authorize"
-                         L"?client_id=<id>>"
-                         L"&response_type=code id_token"
-                         L"&scope=name%20email"
-                         L"&response_mode=form_post"
-                         L"&redirect_uri=<redirect>>";
+  std::wstring url = L"https://appleid.apple.com/auth/authorize"
+                     L"?client_id=" + clientId +
+                     L"&response_type=code id_token"
+                     L"&scope=name%20email"
+                     L"&response_mode=form_post"
+                     L"&redirect_uri=" + redirectUri;
 
   // Open the default browser with the Apple login page
-  HINSTANCE hInstance = ShellExecute(
-      nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL);
+    HINSTANCE hInstance = ShellExecute(
+        nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 
   if (reinterpret_cast<intptr_t>(hInstance) <= 32) {
     result->Error("BrowserError", "Failed to open the default browser");
@@ -155,7 +183,6 @@ void PasskeyApplePlugin::SignInWithApple(
     // Usage
     std::string token_str = WideStringToString(g_token);
     result->Success(flutter::EncodableValue(token_str));
-//    result->Success(flutter::EncodableValue("token-that-was-received"));
   }).detach();
 }
 
@@ -164,11 +191,8 @@ LRESULT CALLBACK PasskeyApplePlugin::WindowProc(HWND hwnd, UINT uMsg, WPARAM wPa
     PCOPYDATASTRUCT pCopyData = (PCOPYDATASTRUCT)lParam;
     std::wstring url((wchar_t*)pCopyData->lpData, pCopyData->cbData / sizeof(wchar_t));
 
-    // Print url
-    std::wcout << url << std::endl;
-
    // Check if the URL contains the redirect URI
-   if (url.find(L"<scheme>://callback") != std::wstring::npos) {
+   if (url.find(g_scheme + L"://callback") != std::wstring::npos) {
        // Extract the token from the URL
        size_t token_pos = url.find(L"token=");
        if (token_pos != std::wstring::npos) {

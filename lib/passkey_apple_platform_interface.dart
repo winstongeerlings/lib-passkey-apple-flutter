@@ -1,3 +1,4 @@
+import 'package:passkey_apple/passkey_apple_config.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'passkey_apple_method_channel.dart';
@@ -27,7 +28,7 @@ abstract class PasskeyApplePlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
-  Future<dynamic?> signIn() {
+  Future<dynamic?> signIn(PasskeyAppleConfig? config) {
     throw UnimplementedError('signIn() has not been implemented.');
   }
 
